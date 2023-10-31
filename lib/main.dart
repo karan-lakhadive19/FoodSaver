@@ -25,6 +25,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
+        
         primaryColor: Color(0xFF755DC1),
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: Color(0xFF755DC1)
