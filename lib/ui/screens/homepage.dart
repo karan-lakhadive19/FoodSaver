@@ -17,11 +17,31 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   List<FridgeItem> fridgeItems = [];
+  TextEditingController itemController = TextEditingController();
   // ...
+  DateTime? expiryDate;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  String uid = "";
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    getUid();
+    super.initState();
+  }
+
+  getUid() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    final User? user = auth.currentUser;
+    setState(() {
+      uid = user!.uid;
+    });
+    print(uid);
+  }
 
   void _showAddItemDialog(BuildContext context) {
     String itemName = '';
-    DateTime? expiryDate;
 
     showDialog(
       context: context,
@@ -30,7 +50,7 @@ class _HomePageState extends State<HomePage> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Add Fridge Item',
+                'Add Item',
                 style: GoogleFonts.poppins(
                   color: Color(0xFF755DC1),
                   fontSize: 25,
@@ -41,6 +61,7 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    controller: itemController,
                     decoration: InputDecoration(
                         labelText: 'Item Name',
                         labelStyle: TextStyle(color: Color(0xFF755DC1)),
@@ -66,6 +87,7 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(
                     height: 15,
                   ),
+
                   ElevatedButton(
                     onPressed: () {
                       showDatePicker(
@@ -73,6 +95,20 @@ class _HomePageState extends State<HomePage> {
                         initialDate: DateTime.now(),
                         firstDate: DateTime.now(),
                         lastDate: DateTime(DateTime.now().year + 10),
+                        builder: (BuildContext context, Widget? child) {
+                          return Theme(
+                            data: ThemeData.light().copyWith(
+                              primaryColor: Color(
+                                  0xFF9F7BFF), // Set your desired color // Set your desired color
+                              colorScheme: ColorScheme.light(
+                                  primary: Color(
+                                      0xFF9F7BFF)), // Set your desired color
+                              buttonTheme: ButtonThemeData(
+                                  textTheme: ButtonTextTheme.primary),
+                            ),
+                            child: child!,
+                          );
+                        },
                       ).then((pickedDate) {
                         if (pickedDate == null) return;
                         setState(() {
@@ -90,7 +126,8 @@ class _HomePageState extends State<HomePage> {
                         fontFamily: GoogleFonts.poppins().fontFamily,
                       ),
                     ),
-                  ),
+                  )
+
                   // ...
                 ],
               ),
@@ -115,7 +152,46 @@ class _HomePageState extends State<HomePage> {
                         print('Item Name: $itemName');
                         print('Expiry Date: $expiryDate');
                       });
+                      addItem();
+
                       Navigator.of(context).pop();
+                      final snackBar = SnackBar(
+                        backgroundColor: Colors.white,
+                        behavior: SnackBarBehavior.floating,
+                        key: _scaffoldKey,
+                        content: Text(
+                          'Item added successfully!',
+                          style: TextStyle(
+                            color: Color(0xFF755DC1),
+                            fontSize: 15,
+                            fontFamily: GoogleFonts.poppins().fontFamily,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        duration: Duration(
+                            seconds:
+                                2), // You can adjust the duration as needed
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    } else {
+                      final snackBar = SnackBar(
+                        backgroundColor: Colors.white,
+                        behavior: SnackBarBehavior.floating,
+                        key: _scaffoldKey,
+                        content: Text(
+                          'Please add an item!',
+                          style: TextStyle(
+                            color: Color(0xFF755DC1),
+                            fontSize: 15,
+                            fontFamily: GoogleFonts.poppins().fontFamily,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        duration: Duration(
+                            seconds:
+                                2), // You can adjust the duration as needed
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -135,6 +211,76 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  Future<void> addItem() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    final User? user = auth.currentUser;
+    String uid = user!.uid;
+    var time = DateTime.now();
+
+    if (itemController.text.isEmpty) {
+      // Handle empty item name
+      const snackBar = SnackBar(
+        content: Text(
+          "Please input Item!",
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.purple,
+        behavior: SnackBarBehavior.floating,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } else if (expiryDate == null) {
+      // Handle case where expiry date is not selected
+      const snackBar = SnackBar(
+        content: Text(
+          "Please select Expiry Date!",
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.purple,
+        behavior: SnackBarBehavior.floating,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } else {
+      await FirebaseFirestore.instance
+          .collection('fridge')
+          .doc(uid)
+          .collection('MyFridge')
+          .doc(time.toString())
+          .set({
+        'item_name': itemController.text,
+        'expiry_date': expiryDate!.toUtc(), // Store the expiry date
+        'time': time.toString(),
+        'timestamp': time,
+      });
+      // Clear the item name and expiry date
+      itemController.clear();
+      setState(() {
+        expiryDate = null;
+      });
+    }
+  }
+
+  void _deleteItemFromFirebase(String itemId) async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    final User? user = auth.currentUser;
+    String uid = user!.uid;
+
+    await FirebaseFirestore.instance
+        .collection('fridge')
+        .doc(uid)
+        .collection('MyFridge')
+        .doc(itemId) // Use the item ID to delete
+        .delete();
+
+    // You can also update the UI by removing the item from the local list
+    // Example: fridgeItems.removeWhere((item) => item.reference.id == itemId);
   }
 
   @override
@@ -170,7 +316,7 @@ class _HomePageState extends State<HomePage> {
                                 fontWeight: FontWeight.bold),
                           ),
                           SizedBox(
-                            width: 7,
+                            width: 6,
                           ),
                           Text(
                             '${username}',
@@ -202,9 +348,106 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: _currentIndex == 0 // Check the current tab index
-          ? Center(
-              child: Text('Fridge Content'), // Replace with your fridge content
-            )
+          ? Padding(
+              padding: EdgeInsets.all(12),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('fridge')
+                    .doc(uid)
+                    .collection('MyFridge')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'Your Fridge is empty!',
+                        style: GoogleFonts.poppins(
+                            color: Color(0xFF9F7BFF),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  } else {
+                    final items = snapshot.data!.docs;
+                    items.sort((a, b) {
+                      final aData = a.data() as Map<String, dynamic>;
+                      final bData = b.data() as Map<String, dynamic>;
+                      final aExpiryDate = aData['expiry_date'];
+                      final bExpiryDate = bData['expiry_date'];
+                      if (aExpiryDate == null && bExpiryDate == null) {
+                        return 0;
+                      } else if (aExpiryDate == null) {
+                        return 1;
+                      } else if (bExpiryDate == null) {
+                        return -1;
+                      }
+                      return aExpiryDate.compareTo(bExpiryDate);
+                    });
+                    return ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final itemData = item.data() as Map<String, dynamic>;
+                        final itemName = itemData['item_name'];
+                        final expiryDate = itemData['expiry_date'];
+
+                        return Card(
+                          color: Color.fromARGB(255, 239, 237, 239),
+                          elevation: 4,
+                          margin: EdgeInsets.all(8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.all(20),
+                                  title: Text(
+                                    itemName,
+                                    style: TextStyle(
+                                      fontFamily:
+                                          GoogleFonts.poppins().fontFamily,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF755DC1),
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    'Expiry Date: ${expiryDate != null ? DateFormat('dd/MM/yyyy').format(expiryDate.toDate()) : 'Not specified'}',
+                                    style: TextStyle(
+                                      fontFamily:
+                                          GoogleFonts.poppins().fontFamily,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF9F7BFF),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete,
+                                    color: Color.fromARGB(255, 244, 74, 62),
+                                    size: 35),
+                                onPressed: () {
+                                  _deleteItemFromFirebase(item.reference
+                                      .id); // Pass the item ID to delete
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
+              ))
           : Center(
               child: Text(
                   'Recommendations Content'), // Replace with your recommendations content
