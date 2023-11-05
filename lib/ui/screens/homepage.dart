@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:foodsaver/ui/screens/api.dart';
 import 'package:google_fonts/google_fonts.dart';
 import './fridge_item.dart';
 import 'package:intl/intl.dart';
@@ -286,67 +287,70 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Color.fromARGB(255, 245, 240, 246),
-        title: StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.active) {
-              final User? user = snapshot.data;
+      appBar: _currentIndex == 0
+          ? AppBar(
+              elevation: 0,
+              backgroundColor: Color.fromARGB(255, 245, 240, 246),
+              title: StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.active) {
+                    final User? user = snapshot.data;
 
-              if (user != null) {
-                return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid)
-                      .get(),
-                  builder: (context, userSnapshot) {
-                    if (userSnapshot.connectionState == ConnectionState.done) {
-                      final userData = userSnapshot.data;
-                      final username = userData?.get('username');
+                    if (user != null) {
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .get(),
+                        builder: (context, userSnapshot) {
+                          if (userSnapshot.connectionState ==
+                              ConnectionState.done) {
+                            final userData = userSnapshot.data;
+                            final username = userData?.get('username');
 
-                      return Row(
-                        children: [
-                          Text(
-                            'Hello',
-                            style: GoogleFonts.poppins(
-                                color: Color(0xFF755DC1),
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(
-                            width: 6,
-                          ),
-                          Text(
-                            '${username}',
-                            style: GoogleFonts.poppins(
-                                color: Color(0xFF9F7BFF),
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                            return Row(
+                              children: [
+                                Text(
+                                  'Hello',
+                                  style: GoogleFonts.poppins(
+                                      color: Color(0xFF755DC1),
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(
+                                  width: 6,
+                                ),
+                                Text(
+                                  '${username}',
+                                  style: GoogleFonts.poppins(
+                                      color: Color(0xFF9F7BFF),
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Text('');
+                          }
+                        },
                       );
-                    } else {
-                      return Text('');
                     }
+                  }
+                  return Text('Hi Guest');
+                },
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
                   },
-                );
-              }
-            }
-            return Text('Hi Guest');
-          },
-        ),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
-            icon:
-                Icon(Icons.login_outlined, color: Color(0xFF755DC1), size: 35),
-          )
-        ],
-      ),
+                  icon: Icon(Icons.login_outlined,
+                      color: Color(0xFF755DC1), size: 35),
+                )
+              ],
+            )
+          : null,
       body: _currentIndex == 0 // Check the current tab index
           ? Padding(
               padding: EdgeInsets.all(12),
@@ -397,6 +401,10 @@ class _HomePageState extends State<HomePage> {
                         final itemName = itemData['item_name'];
                         final expiryDate = itemData['expiry_date'];
 
+                        String capitalize(String s) {
+                          return s[0].toUpperCase() + s.substring(1);
+                        }
+
                         return Card(
                           color: Color.fromARGB(255, 239, 237, 239),
                           elevation: 4,
@@ -410,7 +418,7 @@ class _HomePageState extends State<HomePage> {
                                 child: ListTile(
                                   contentPadding: EdgeInsets.all(20),
                                   title: Text(
-                                    itemName,
+                                    capitalize(itemName),
                                     style: TextStyle(
                                       fontFamily:
                                           GoogleFonts.poppins().fontFamily,
@@ -449,17 +457,18 @@ class _HomePageState extends State<HomePage> {
                 },
               ))
           : Center(
-              child: Text(
-                  'Recommendations Content'), // Replace with your recommendations content
-            ),
-      floatingActionButton: FloatingActionButton(
+              child: Center(
+              child: RecipePage(uid: uid),
+            ) // Replace with your recommendations content
+              ),
+      floatingActionButton: _currentIndex == 0?FloatingActionButton(
         onPressed: () {
           _showAddItemDialog(context);
         },
         backgroundColor: Color(0xFF9F7BFF), // Set the background color
         child: Icon(Icons.add,
             color: Colors.white), // You can change the icon and its color
-      ),
+      ):null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex, // Set the current tab index
         items: [
