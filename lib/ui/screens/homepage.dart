@@ -41,6 +41,38 @@ class _HomePageState extends State<HomePage> {
     print(uid);
   }
 
+ String _calculateRemainingDays(DateTime expiryDate) {
+  final currentDate = DateTime.now();
+  final expiryDateWithoutTime = DateTime(
+    expiryDate.year,
+    expiryDate.month,
+    expiryDate.day,
+  );
+  final currentDateWithoutTime = DateTime(
+    currentDate.year,
+    currentDate.month,
+    currentDate.day,
+  );
+
+  if (expiryDateWithoutTime.isBefore(currentDateWithoutTime)) {
+    return 'Expired';
+  }
+
+  final difference = expiryDateWithoutTime.difference(currentDateWithoutTime);
+  final differenceInDays = difference.inDays;
+
+  if (differenceInDays <= 0) {
+    return 'Expired';
+  } else if (differenceInDays == 1) {
+    return '1 day';
+  } else {
+    return '$differenceInDays days';
+  }
+}
+
+
+  
+
   void _showAddItemDialog(BuildContext context) {
     String itemName = '';
 
@@ -284,6 +316,11 @@ class _HomePageState extends State<HomePage> {
     // Example: fridgeItems.removeWhere((item) => item.reference.id == itemId);
   }
 
+  String capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -322,7 +359,7 @@ class _HomePageState extends State<HomePage> {
                                   width: 6,
                                 ),
                                 Text(
-                                  '${username}',
+                                  capitalizeFirstLetter(username),
                                   style: GoogleFonts.poppins(
                                       color: Color(0xFF9F7BFF),
                                       fontSize: 25,
@@ -427,15 +464,41 @@ class _HomePageState extends State<HomePage> {
                                       color: Color(0xFF755DC1),
                                     ),
                                   ),
-                                  subtitle: Text(
-                                    'Expiry Date: ${expiryDate != null ? DateFormat('dd/MM/yyyy').format(expiryDate.toDate()) : 'Not specified'}',
-                                    style: TextStyle(
-                                      fontFamily:
-                                          GoogleFonts.poppins().fontFamily,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF9F7BFF),
-                                    ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Expiry Date: ${expiryDate != null ? DateFormat('dd/MM/yyyy').format(expiryDate.toDate()) : 'Not specified'}',
+                                        style: TextStyle(
+                                          fontFamily:
+                                              GoogleFonts.poppins().fontFamily,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF9F7BFF),
+                                        ),
+                                      ),
+                                      Text(
+                                        'Remaining Days: ${expiryDate != null ? _calculateRemainingDays(expiryDate.toDate()) : 'N/A'}',
+                                        style: TextStyle(
+                                          fontFamily:
+                                              GoogleFonts.poppins().fontFamily,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: _calculateRemainingDays(
+                                                      expiryDate.toDate()) ==
+                                                  'Expired'
+                                              ? Colors.red
+                                              : (_calculateRemainingDays(
+                                                          expiryDate
+                                                              .toDate()) ==
+                                                      'More than 5 days'
+                                                  ? Colors
+                                                      .green // Change this to your desired color
+                                                  : Colors.purple),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -461,14 +524,16 @@ class _HomePageState extends State<HomePage> {
               child: RecipePage(uid: uid),
             ) // Replace with your recommendations content
               ),
-      floatingActionButton: _currentIndex == 0?FloatingActionButton(
-        onPressed: () {
-          _showAddItemDialog(context);
-        },
-        backgroundColor: Color(0xFF9F7BFF), // Set the background color
-        child: Icon(Icons.add,
-            color: Colors.white), // You can change the icon and its color
-      ):null,
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: () {
+                _showAddItemDialog(context);
+              },
+              backgroundColor: Color(0xFF9F7BFF), // Set the background color
+              child: Icon(Icons.add,
+                  color: Colors.white), // You can change the icon and its color
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex, // Set the current tab index
         items: [

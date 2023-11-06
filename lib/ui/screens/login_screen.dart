@@ -2,6 +2,7 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:foodsaver/ui/screens/forgot.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.controller});
@@ -23,6 +24,18 @@ class _LoginScreenState extends State<LoginScreen> {
       signinUser(_emailController.text, _passController.text);
     }
   }
+
+  Future<void> resetPassword(String email) async {
+  try {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    // Show a success message or navigate to a success screen
+  } catch (e) {
+    // Handle errors, such as an invalid email or user not found
+    print("Error: $e");
+    // Show an error message to the user
+  }
+}
+
 
   void signinUser(String _email, String _password) async {
     try {
@@ -48,31 +61,59 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Here, you can navigate to another screen or perform other actions upon successful sign-in.
     } on FirebaseAuthException catch (e) {
-      String errorMessage = '';
+      // String errorMessage = '';
 
       if (e.code == 'user-not-found') {
-        errorMessage = 'No user found for that email.';
-        
+        // errorMessage = 'No user found for that email.';
+        final snackBar = SnackBar(
+          content: Text(
+            "No user found for that email.",
+            style: TextStyle(
+              color: Color(0xFF755DC1),
+              fontSize: 15,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          behavior: SnackBarBehavior.floating,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       } else if (e.code == 'wrong-password') {
-        errorMessage = 'Wrong password provided for that user.';
+        print(e);
+        // errorMessage = 'Wrong password provided for that user.';
+        final snackBar = SnackBar(
+          content: Text(
+            "Wrong password provided for that user.",
+            style: TextStyle(
+              color: Color(0xFF755DC1),
+              fontSize: 15,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          behavior: SnackBarBehavior.floating,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
 
       // Display an error snackbar
-      final snackBar = SnackBar(
-        content: Text(
-          errorMessage,
-          style: TextStyle(
-            color: Color(0xFF755DC1),
-            fontSize: 27,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        backgroundColor: Colors.purple,
-        behavior: SnackBarBehavior.floating,
-      );
+      // final snackBar = SnackBar(
+      //   content: Text(
+      //     errorMessage,
+      //     style: TextStyle(
+      //       color: Color(0xFF755DC1),
+      //       fontSize: 27,
+      //       fontFamily: 'Poppins',
+      //       fontWeight: FontWeight.w500,
+      //     ),
+      //   ),
+      //   backgroundColor: Colors.purple,
+      //   behavior: SnackBarBehavior.floating,
+      // );
 
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      // ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -252,15 +293,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(
                       height: 15,
                     ),
-                    const Text(
-                      'Forget Password?',
-                      style: TextStyle(
-                        color: Color(0xFF755DC1),
-                        fontSize: 13,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    InkWell(
+                          onTap: () {
+                            widget.controller.animateToPage(2,
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.ease);
+                          },
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: Color(0xFF755DC1),
+                              fontSize: 13,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                   ],
                 ),
               ),

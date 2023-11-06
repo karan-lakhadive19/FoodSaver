@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodsaver/ui/screens/forgot.dart';
 import 'package:foodsaver/ui/screens/login_screen.dart';
 import 'package:foodsaver/ui/screens/sing_up_screen.dart';
 
@@ -17,18 +18,22 @@ class _MainViewState extends State<MainView> {
     return Scaffold(
       body: PageView.builder(
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: 2,
+        itemCount: 3,
         controller: controller,
         itemBuilder: (context, index) {
           if (index == 0) {
             return LoginScreen(
               controller: controller,
             );
-          } else  {
+          } else  if(index==1){
             return SingUpScreen(
               controller: controller,
             );
-          } 
+          } else {
+            return ForgotPass(
+              controller: controller,
+            );
+          }
           
         },
       ),
